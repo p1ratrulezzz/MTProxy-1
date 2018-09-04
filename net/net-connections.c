@@ -17,8 +17,8 @@
     Copyright 2009-2013 Vkontakte Ltd
               2008-2013 Nikolai Durov
               2008-2013 Andrey Lopatin
-    
-    Copyright 2014      Telegram Messenger Inc             
+
+    Copyright 2014      Telegram Messenger Inc
               2014      Nikolai Durov
               2014      Andrey Lopatin
 
@@ -118,16 +118,16 @@ MODULE_INIT
 MODULE_STAT_FUNCTION
   SB_SUM_ONE_I (active_connections);
   SB_SUM_ONE_I (active_dh_connections);
-  
+
   SB_SUM_ONE_I (outbound_connections);
-  SB_SUM_ONE_I (ready_outbound_connections); 
-  SB_SUM_ONE_I (active_outbound_connections); 
+  SB_SUM_ONE_I (ready_outbound_connections);
+  SB_SUM_ONE_I (active_outbound_connections);
   SB_SUM_ONE_LL (outbound_connections_created);
   SB_SUM_ONE_LL (total_connect_failures);
-  
+
   SB_SUM_ONE_I (inbound_connections);
-  //SB_SUM_ONE_I (ready_inbound_connections); 
-  SB_SUM_ONE_I (active_inbound_connections); 
+  //SB_SUM_ONE_I (ready_inbound_connections);
+  SB_SUM_ONE_I (active_inbound_connections);
   SB_SUM_ONE_LL (inbound_connections_accepted);
 
   SB_SUM_ONE_I (listening_connections);
@@ -221,7 +221,7 @@ static struct iovec tcp_recv_iovec[MAX_TCP_RECV_BUFFERS + 1];
 static struct msg_buffer *tcp_recv_buffers[MAX_TCP_RECV_BUFFERS];
 
 int prealloc_tcp_buffers (void) /* {{{ */ {
-  assert (!tcp_recv_buffers_num);   
+  assert (!tcp_recv_buffers_num);
 
   int i;
   for (i = MAX_TCP_RECV_BUFFERS - 1; i >= 0; i--) {
@@ -297,7 +297,7 @@ static inline int compute_conn_events (connection_job_t c) {
   if (flags & (C_ERROR | C_FAILED | C_NET_FAILED)) {
     return 0;
   }
-  return (((flags & (C_WANTRD | C_STOPREAD)) == C_WANTRD) ? EVT_READ : 0) | (flags & C_WANTWR ? EVT_WRITE : 0) | EVT_SPEC 
+  return (((flags & (C_WANTRD | C_STOPREAD)) == C_WANTRD) ? EVT_READ : 0) | (flags & C_WANTWR ? EVT_WRITE : 0) | EVT_SPEC
        | (((flags & (C_WANTRD | C_NORD)) == (C_WANTRD | C_NORD))
          || ((flags & (C_WANTWR | C_NOWR)) == (C_WANTWR | C_NOWR)) ? EVT_LEVEL : 0);
 }
@@ -346,7 +346,7 @@ static inline void cond_reset_cork (connection_job_t c) {
 
 
 
-/* {{{ CPU PART OF CONNECTION */ 
+/* {{{ CPU PART OF CONNECTION */
 
 /* {{{ TIMEOUT */
 int set_connection_timeout (connection_job_t C, double timeout) /* {{{ */ {
@@ -355,7 +355,7 @@ int set_connection_timeout (connection_job_t C, double timeout) /* {{{ */ {
   if (c->flags & C_ERROR) { return 0; }
 
   __sync_fetch_and_and (&c->flags, ~C_ALARM);
-  
+
   if (timeout > 0) {
     job_timer_insert (C, precise_now + timeout);
     return 0;
@@ -381,7 +381,7 @@ int clear_connection_timeout (connection_job_t C) /* {{{ */ {
 */
 void fail_connection (connection_job_t C, int err) /* {{{ */ {
   struct connection_info *c = CONN_INFO (C);
-    
+
   if (!(__sync_fetch_and_or (&c->flags, C_ERROR) & C_ERROR)) {
     c->status = conn_error;
     if (c->error >= 0) {
@@ -393,7 +393,7 @@ void fail_connection (connection_job_t C, int err) /* {{{ */ {
 }
 /* }}} */
 
-/* 
+/*
   just runs ->reader and ->writer virtual methods
 */
 int cpu_server_read_write (connection_job_t C) /* {{{ */ {
@@ -411,7 +411,7 @@ int cpu_server_read_write (connection_job_t C) /* {{{ */ {
 int cpu_server_free_connection (connection_job_t C) /* {{{ */ {
   assert_net_cpu_thread ();
   assert (C->j_refcnt == 1);
-  
+
   struct connection_info *c = CONN_INFO (C);
   if (!(c->flags & C_ERROR)) {
     vkprintf (0, "target = %p, basic=%d\n", c->target, c->basic_type);
@@ -420,7 +420,7 @@ int cpu_server_free_connection (connection_job_t C) /* {{{ */ {
   assert (c->flags & C_FAILED);
   assert (!c->target);
   assert (!c->io_conn);
- 
+
   vkprintf (1, "Closing connection socket #%d\n", c->fd);
 
   while (1) {
@@ -446,10 +446,10 @@ int cpu_server_free_connection (connection_job_t C) /* {{{ */ {
   if (c->type->crypto_free) {
     c->type->crypto_free (C);
   }
-  
+
   close (c->fd);
   c->fd = -1;
-  
+
   MODULE_STAT->allocated_connections --;
   if (c->basic_type == ct_outbound) {
     MODULE_STAT->allocated_outbound_connections --;
@@ -471,15 +471,15 @@ int cpu_server_free_connection (connection_job_t C) /* {{{ */ {
 int cpu_server_close_connection (connection_job_t C, int who) /* {{{ */ {
   assert_net_cpu_thread ();
   struct connection_info *c = CONN_INFO(C);
-  
+
   assert (c->flags & C_ERROR);
   assert (c->status == conn_error);
   assert (c->flags & C_FAILED);
-    
+
   if (c->error != -17) {
     MODULE_STAT->total_failed_connections ++;
     if (!connection_is_active (c->flags)) {
-      MODULE_STAT->total_connect_failures ++; 
+      MODULE_STAT->total_connect_failures ++;
     }
   } else {
     MODULE_STAT->unused_connections_closed ++;
@@ -493,7 +493,7 @@ int cpu_server_close_connection (connection_job_t C, int who) /* {{{ */ {
   assert (c->io_conn);
   job_signal (JOB_REF_PASS (c->io_conn), JS_ABORT);
 
-  if (c->target) {   
+  if (c->target) {
     MODULE_STAT->outbound_connections --;
 
     if (connection_is_active (c->flags)) {
@@ -508,7 +508,7 @@ int cpu_server_close_connection (connection_job_t C, int who) /* {{{ */ {
       MODULE_STAT->active_inbound_connections --;
     }
   }
-  
+
   if (connection_is_active (c->flags)) {
     MODULE_STAT->active_connections --;
   }
@@ -525,11 +525,11 @@ int cpu_server_close_connection (connection_job_t C, int who) /* {{{ */ {
       }
     }
   }
- 
+
   job_timer_remove (C);
   return 0;
 }
-/* }}} */ 
+/* }}} */
 
 int do_connection_job (job_t job, int op, struct job_thread *JT) /* {{{ */ {
   connection_job_t C = job;
@@ -542,7 +542,7 @@ int do_connection_job (job_t job, int op, struct job_thread *JT) /* {{{ */ {
       if (c->flags & C_READY_PENDING) {
         assert (c->flags & C_CONNECTED);
         __sync_fetch_and_and (&c->flags, ~C_READY_PENDING);
-        MODULE_STAT->active_outbound_connections ++;        
+        MODULE_STAT->active_outbound_connections ++;
         MODULE_STAT->active_connections ++;
         __sync_fetch_and_add (&CONN_TARGET_INFO(c->target)->active_outbound_connections, 1);
         if (c->status == conn_connecting) {
@@ -602,8 +602,8 @@ connection_job_t alloc_new_connection (int cfd, conn_target_job_t CTJ, listening
     MODULE_STAT->accept_nonblock_set_failed ++;
     close (cfd);
     return NULL;
-  }  
-  
+  }
+
   flags = 1;
   setsockopt (cfd, IPPROTO_TCP, TCP_NODELAY, &flags, sizeof (flags));
   if (tcp_maximize_buffers) {
@@ -630,7 +630,7 @@ connection_job_t alloc_new_connection (int cfd, conn_target_job_t CTJ, listening
   c->fd = cfd;
   c->target = CTJ;
   c->generation = new_conn_generation ();
-  
+
   c->flags = 0;//SS ? C_WANTWR : C_WANTRD;
   if (LC) {
     c->flags = C_CONNECTED;
@@ -640,10 +640,10 @@ connection_job_t alloc_new_connection (int cfd, conn_target_job_t CTJ, listening
 
   if (raw) {
     c->flags |= C_RAWMSG;
-    rwm_init (&c->in, 0); 
-    rwm_init (&c->out, 0); 
-    rwm_init (&c->in_u, 0); 
-    rwm_init (&c->out_p, 0); 
+    rwm_init (&c->in, 0);
+    rwm_init (&c->out, 0);
+    rwm_init (&c->in_u, 0);
+    rwm_init (&c->out_p, 0);
   } else {
     assert (0);
   }
@@ -651,10 +651,10 @@ connection_job_t alloc_new_connection (int cfd, conn_target_job_t CTJ, listening
   c->type = CT ? CT->type : LC->type;
   c->extra = CT ? CT->extra : LC->extra;
   assert (c->type);
-  
+
   c->basic_type = CT ? ct_outbound : ct_inbound;
   c->status = CT ? conn_connecting : conn_working;
-  
+
   c->flags |= c->type->flags & C_EXTERNAL;
   if (LC) {
     c->flags |= LC->flags & C_EXTERNAL;
@@ -687,11 +687,11 @@ connection_job_t alloc_new_connection (int cfd, conn_target_job_t CTJ, listening
     }
   }
   c->remote_port = peer_port;
-  
+
   c->in_queue = alloc_mp_queue_w ();
   c->out_queue = alloc_mp_queue_w ();
   //c->out_packet_queue = alloc_mp_queue_w ();
-  
+
   if (CT) {
     vkprintf (1, "New connection %s:%d -> %s:%d\n", show_our_ip (C), c->our_port, show_remote_ip (C), c->remote_port);
   } else {
@@ -702,7 +702,7 @@ connection_job_t alloc_new_connection (int cfd, conn_target_job_t CTJ, listening
   int (*func)(connection_job_t) = CT ? CT->type->init_outbound : LC->type->init_accepted;
 
   vkprintf (3, "func = %p\n", func);
-  
+
 
   if (func (C) >= 0) {
     if (CT) {
@@ -719,13 +719,13 @@ connection_job_t alloc_new_connection (int cfd, conn_target_job_t CTJ, listening
       MODULE_STAT->inbound_connections ++;
       MODULE_STAT->active_inbound_connections ++;
       MODULE_STAT->active_connections ++;
-      
+
       c->listening = LC->fd;
       c->listening_generation = LC->generation;
       if (LC->flags & C_NOQACK) {
         c->flags |= C_NOQACK;
       }
-      
+
       c->window_clamp = LC->window_clamp;
       if (c->window_clamp) {
         if (setsockopt (cfd, IPPROTO_TCP, TCP_WINDOW_CLAMP, &c->window_clamp, 4) < 0) {
@@ -738,11 +738,11 @@ connection_job_t alloc_new_connection (int cfd, conn_target_job_t CTJ, listening
           vkprintf (2, "window clamp for socket %d is %d, receive buffer is %d\n", cfd, t1, t2);
         }
       }
-      
+
       if (LC->flags & C_SPECIAL) {
         c->flags |= C_SPECIAL;
         __sync_fetch_and_add (&active_special_connections, 1);
-        
+
         if (active_special_connections > max_special_connections) {
           vkprintf (active_special_connections >= max_special_connections + 16 ? 0 : 1, "ERROR: forced to accept connection when special connections limit was reached (%d of %d)\n", active_special_connections, max_special_connections);
         }
@@ -756,7 +756,7 @@ connection_job_t alloc_new_connection (int cfd, conn_target_job_t CTJ, listening
     alloc_new_socket_connection (C);
 
     MODULE_STAT->allocated_connections ++;
-   
+
     return C;
   } else {
     MODULE_STAT->accept_init_accepted_failed ++;
@@ -816,7 +816,7 @@ void fail_socket_connection (socket_connection_job_t C, int who) /* {{{ */ {
 */
 int net_server_socket_free (socket_connection_job_t C) /* {{{ */ {
   assert_net_net_thread ();
-  
+
   struct socket_connection_info *c = SOCKET_CONN_INFO (C);
 
   assert (!c->ev);
@@ -843,7 +843,7 @@ int net_server_socket_free (socket_connection_job_t C) /* {{{ */ {
 }
 /* }}} */
 
-/* 
+/*
   Reads data from socket until all data is read
   Then puts it to conn->in_queue and send JS_RUN signal
 */
@@ -858,7 +858,7 @@ int net_server_socket_reader (socket_connection_job_t C) /* {{{ */ {
 
     struct raw_message *in = malloc (sizeof (*in));
     rwm_init (in, 0);
-    
+
     int s = tcp_recv_buffers_total_size;
     assert (s > 0);
 
@@ -883,7 +883,7 @@ int net_server_socket_reader (socket_connection_job_t C) /* {{{ */ {
     } else {
       __sync_fetch_and_and (&c->flags, ~C_NORD);
     }
-      
+
     if (verbosity > 0 && r < 0 && errno != EAGAIN) {
       perror ("recv()");
     }
@@ -943,13 +943,13 @@ int net_server_socket_reader (socket_connection_job_t C) /* {{{ */ {
 }
 /* }}} */
 
-/* 
-  Get data from out raw message and writes it to socket 
+/*
+  Get data from out raw message and writes it to socket
 */
 int net_server_socket_writer (socket_connection_job_t C) /* {{{ */{
   assert_net_net_thread ();
   struct socket_connection_info *c = SOCKET_CONN_INFO (C);
-  
+
   struct raw_message *out = &c->out;
 
   int check_watermark = out->total_bytes >= c->write_low_watermark;
@@ -997,7 +997,7 @@ int net_server_socket_writer (socket_connection_job_t C) /* {{{ */{
       c->eagain_count = 0;
       t += r;
     }
-    
+
     if (verbosity && r < 0 && errno != EAGAIN) {
       perror ("writev()");
     }
@@ -1035,32 +1035,32 @@ int net_server_socket_writer (socket_connection_job_t C) /* {{{ */{
 */
 int net_server_socket_read_write (socket_connection_job_t C) /* {{{ */ {
   assert_net_net_thread ();
-  
+
   struct socket_connection_info *c = SOCKET_CONN_INFO (C);
 
   if (c->flags & C_ERROR) {
     return 0;
   }
- 
+
   if (!(c->flags & C_CONNECTED)) {
     if (!(c->flags & C_NOWR)) {
       __sync_fetch_and_and (&c->flags, C_PERMANENT);
       __sync_fetch_and_or (&c->flags, C_WANTRD | C_CONNECTED);
       __sync_fetch_and_or (&CONN_INFO(c->conn)->flags, C_READY_PENDING | C_CONNECTED);
-        
+
       c->type->socket_connected (C);
       job_signal (JOB_REF_CREATE_PASS (c->conn), JS_RUN);
     } else {
       return compute_conn_events (C);
     }
   }
-  
+
   vkprintf (2, "END processing connection %d, flags=%d\n", c->fd, c->flags);
 
   while ((c->flags & (C_WANTRD | C_NORD | C_ERROR | C_STOPREAD | C_NET_FAILED)) == C_WANTRD) {
     c->type->socket_reader (C);
   }
-  
+
   struct raw_message *out = &c->out;
 
   while (1) {
@@ -1073,8 +1073,8 @@ int net_server_socket_read_write (socket_connection_job_t C) /* {{{ */ {
   if (out->total_bytes) {
     __sync_fetch_and_or (&c->flags, C_WANTWR);
   }
- 
-  while ((c->flags & (C_NOWR | C_ERROR | C_WANTWR | C_NET_FAILED)) == C_WANTWR) {  
+
+  while ((c->flags & (C_NOWR | C_ERROR | C_WANTWR | C_NET_FAILED)) == C_WANTWR) {
     c->type->socket_writer (C);
   }
 
@@ -1092,7 +1092,7 @@ int net_server_socket_read_write_gateway (int fd, void *data, event_t *ev) /* {{
   if (!data) { return EVA_REMOVE; }
 
   assert ((int)ev->refcnt);
- 
+
   socket_connection_job_t C = (socket_connection_job_t) data;
   assert (C);
   struct socket_connection_info *c = SOCKET_CONN_INFO (C);
@@ -1140,7 +1140,7 @@ int do_socket_connection_job (job_t job, int op, struct job_thread *JT) /* {{{ *
 
   struct socket_connection_info *c = SOCKET_CONN_INFO (C);
 
-  if (op == JS_ABORT) { // MAIN THREAD 
+  if (op == JS_ABORT) { // MAIN THREAD
     fail_socket_connection (C, -200);
     return JOB_COMPLETED;
   }
@@ -1166,12 +1166,12 @@ int do_socket_connection_job (job_t job, int op, struct job_thread *JT) /* {{{ *
     c->type->socket_free (C);
     return job_free (JOB_REF_PASS (C));
   }
-  
+
   return JOB_ERROR;
 }
 /* }}} */
 
-/* 
+/*
   creates socket_connection structure
   insert event to epoll
 */
@@ -1188,30 +1188,30 @@ socket_connection_job_t alloc_new_socket_connection (connection_job_t C) /* {{{ 
   s->type = c->type;
   s->conn = job_incref (C);
   s->flags = C_WANTWR | C_WANTRD | (c->flags & C_CONNECTED);
-  
+
   s->our_ip = c->our_ip;
   s->our_port = c->our_port;
   memcpy (s->our_ipv6, c->our_ipv6, 16);
-  
+
   s->remote_ip = c->remote_ip;
   s->remote_port = c->remote_port;
   memcpy (s->remote_ipv6, c->remote_ipv6, 16);
 
   s->out_packet_queue = alloc_mp_queue_w ();
-  
+
   struct event_descr *ev = Events + s->fd;
   assert (!ev->data);
   assert (!ev->refcnt);
 
   s->ev = ev;
-    
+
   epoll_sethandler (s->fd, 0, net_server_socket_read_write_gateway, S);
 
   s->current_epoll_status = compute_conn_events (S);
   epoll_insert (s->fd, s->current_epoll_status);
 
   c->io_conn = S;
-  
+
   rwm_init (&s->out, 0);
   unlock_job (JOB_REF_CREATE_PASS (S));
 
@@ -1234,7 +1234,7 @@ int net_accept_new_connections (listening_connection_job_t LCJ) /* {{{ */ {
   unsigned peer_addrlen;
   int cfd, acc = 0;
 
-  while (Events[LC->fd].state & EVT_IN_EPOLL) {   
+  while (Events[LC->fd].state & EVT_IN_EPOLL) {
     peer_addrlen = sizeof (peer);
     memset (&peer, 0, sizeof (peer));
     cfd = accept (LC->fd, (struct sockaddr *) &peer, &peer_addrlen);
@@ -1249,17 +1249,17 @@ int net_accept_new_connections (listening_connection_job_t LCJ) /* {{{ */ {
       }
       break;
     }
-    
+
     acc ++;
     MODULE_STAT->inbound_connections_accepted ++;
-    
+
     if (max_accept_rate) {
       cur_accept_rate_remaining += (precise_now - cur_accept_rate_time) * max_accept_rate;
       cur_accept_rate_time = precise_now;
       if (cur_accept_rate_remaining > max_accept_rate) {
         cur_accept_rate_remaining = max_accept_rate;
       }
-      
+
       if (cur_accept_rate_remaining < 1) {
         MODULE_STAT->accept_rate_limit_failed ++;
         close (cfd);
@@ -1268,7 +1268,7 @@ int net_accept_new_connections (listening_connection_job_t LCJ) /* {{{ */ {
 
       cur_accept_rate_remaining -= 1;
     }
-     
+
     if (LC->flags & C_IPV6) {
       assert (peer_addrlen == sizeof (struct sockaddr_in6));
       assert (peer.a6.sin6_family == AF_INET6);
@@ -1276,7 +1276,7 @@ int net_accept_new_connections (listening_connection_job_t LCJ) /* {{{ */ {
       assert (peer_addrlen == sizeof (struct sockaddr_in));
       assert (peer.a4.sin_family == AF_INET);
     }
-   
+
     connection_job_t C;
     if (peer.a4.sin_family == AF_INET) {
       C = alloc_new_connection (cfd, NULL, LCJ,
@@ -1320,7 +1320,7 @@ int init_listening_connection_ext (int fd, conn_type_t *type, void *extra, int m
   if (fd > max_connection) {
     max_connection = fd;
   }
-  
+
   listening_connection_job_t LCJ = create_async_job (do_listening_connection_job, JSC_ALLOW (JC_EPOLL, JS_RUN) | JSC_ALLOW (JC_EPOLL, JS_AUX) | JSC_ALLOW (JC_EPOLL, JS_FINISH), -2, sizeof (struct listening_connection_info), JT_HAVE_TIMER, JOB_REF_NULL);
   LCJ->j_refcnt = 2;
 
@@ -1346,8 +1346,8 @@ int init_listening_connection_ext (int fd, conn_type_t *type, void *extra, int m
     LC->flags |= C_SPECIAL;
     int idx = __sync_fetch_and_add (&special_listen_sockets, 1);
     assert (idx < MAX_SPECIAL_LISTEN_SOCKETS);
-    special_socket[idx].fd = LC->fd; 
-    special_socket[idx].generation = LC->generation; 
+    special_socket[idx].fd = LC->fd;
+    special_socket[idx].generation = LC->generation;
   }
 
   if (mode & SM_NOQACK) {
@@ -1368,8 +1368,8 @@ int init_listening_connection_ext (int fd, conn_type_t *type, void *extra, int m
 
   MODULE_STAT->listening_connections ++;
 
-  unlock_job (JOB_REF_PASS (LCJ));  
-  
+  unlock_job (JOB_REF_PASS (LCJ));
+
   return 0;
 }
 
@@ -1380,7 +1380,7 @@ int init_listening_connection (int fd, conn_type_t *type, void *extra) {
 int init_listening_tcpv6_connection (int fd, conn_type_t *type, void *extra, int mode) {
   return init_listening_connection_ext (fd, type, extra, mode, -10);
 }
-/* }}} */ 
+/* }}} */
 
 /* }}} */
 
@@ -1396,7 +1396,7 @@ void connection_event_incref (int fd, long long val) {
 }
 
 connection_job_t connection_get_by_fd (int fd) {
-  struct event_descr *ev = &Events[fd];  
+  struct event_descr *ev = &Events[fd];
   if (!(int)(ev->refcnt) || !ev->data) { return NULL; }
 
   while (1) {
@@ -1408,7 +1408,7 @@ connection_job_t connection_get_by_fd (int fd) {
   }
   __sync_fetch_and_add (&ev->refcnt, 1 - (1ll << 32));
   socket_connection_job_t C = job_incref (ev->data);
-  
+
   connection_event_incref (fd, -1);
 
   if (C->j_execute == &do_listening_connection_job) {
@@ -1456,7 +1456,7 @@ int server_check_ready (connection_job_t C) /* {{{ */ {
 /* }}} */
 
 int server_noop (connection_job_t C) /* {{{ */ {
-  return 0;  
+  return 0;
 }
 /* }}} */
 
@@ -1507,7 +1507,7 @@ int check_conn_functions (conn_type_t *type, int listening) /* {{{ */ {
       type->init_accepted = server_failed;
     }
   }
-  
+
   if (!type->close) {
     type->close = cpu_server_close_connection;
   }
@@ -1588,7 +1588,7 @@ void compute_next_reconnect (conn_target_job_t CT) /* {{{ */{
 /* }}} */
 
 static void count_connection_num (connection_job_t C, void *good_c, void *stopped_c, void *bad_c) /* {{{ */ {
-  int cr = CONN_INFO(C)->type->check_ready (C); 
+  int cr = CONN_INFO(C)->type->check_ready (C);
   switch (cr) {
     case cr_notyet:
     case cr_busy:
@@ -1623,28 +1623,28 @@ static void find_bad_connection (connection_job_t C, void *x) /* {{{ */ {
 void destroy_dead_target_connections (conn_target_job_t CTJ) /* {{{ */ {
   struct conn_target_info *CT = CONN_TARGET_INFO (CTJ);
 
-  struct tree_connection *T = CT->conn_tree;  
+  struct tree_connection *T = CT->conn_tree;
   if (T) {
     __sync_fetch_and_add (&T->refcnt, 1);
   }
-  
+
   while (1) {
     connection_job_t CJ = NULL;
     tree_act_ex_connection (T, find_bad_connection, &CJ);
     if (!CJ) { break; }
-    
-    if (connection_is_active (CONN_INFO (CJ)->flags)) {    
+
+    if (connection_is_active (CONN_INFO (CJ)->flags)) {
       __sync_fetch_and_add (&CT->active_outbound_connections, -1);
     }
     __sync_fetch_and_add (&CT->outbound_connections, -1);
 
-    T = tree_delete_connection (T, CJ);     
+    T = tree_delete_connection (T, CJ);
   }
-  
+
   int good_c = 0, bad_c = 0, stopped_c = 0;
 
   tree_act_ex3_connection (T, count_connection_num, &good_c, &stopped_c, &bad_c);
-  
+
   int was_ready = CT->ready_outbound_connections;
   CT->ready_outbound_connections = good_c;
 
@@ -1672,7 +1672,7 @@ void destroy_dead_target_connections (conn_target_job_t CTJ) /* {{{ */ {
 /* }}} */
 
 /*
-  creates new connections for target 
+  creates new connections for target
   must be called in main thread, because we can allocate new connections only in main thread
 */
 int create_new_connections (conn_target_job_t CTJ) /* {{{ */ {
@@ -1705,7 +1705,7 @@ int create_new_connections (conn_target_job_t CTJ) /* {{{ */ {
   }
 
   if (precise_now >= CT->next_reconnect || CT->active_outbound_connections) {
-    struct tree_connection *T = CT->conn_tree;  
+    struct tree_connection *T = CT->conn_tree;
     if (T) {
       __sync_fetch_and_add (&T->refcnt, 1);
     }
@@ -1731,7 +1731,7 @@ int create_new_connections (conn_target_job_t CTJ) /* {{{ */ {
 
       if (C) {
         assert (CONN_INFO(C)->io_conn);
-        count ++;        
+        count ++;
         unlock_job (JOB_REF_CREATE_PASS (C));
         T = tree_insert_connection (T, C, lrand48_j ());
       } else {
@@ -1747,10 +1747,10 @@ int create_new_connections (conn_target_job_t CTJ) /* {{{ */ {
       __sync_synchronize ();
       free_tree_ptr_connection (old);
     }
-  
+
     compute_next_reconnect (CTJ);
   }
-  
+
 
   return count;
 }
@@ -1860,7 +1860,7 @@ static void fail_connection_gw (connection_job_t C) {
 }
 
 int clean_unused_target (conn_target_job_t CTJ) /* {{{ */ {
-  assert (CTJ);  
+  assert (CTJ);
   struct conn_target_info *CT = CONN_TARGET_INFO (CTJ);
   assert (CT->type);
   if (CT->global_refcnt) {
@@ -1944,14 +1944,14 @@ conn_target_job_t create_target (struct conn_target_info *source, int *was_creat
   }
   pthread_mutex_lock (&TargetsLock);
 
-  conn_target_job_t T = 
-    source->target.s_addr ? 
+  conn_target_job_t T =
+    source->target.s_addr ?
     find_target (source->target, source->port, source->type, source->extra, 0, 0) :
     find_target_ipv6 (source->target_ipv6, source->port, source->type, source->extra, 0, 0);
 
   if (T) {
     struct conn_target_info *t = CONN_TARGET_INFO (T);
-    
+
     t->min_connections = source->min_connections;
     t->max_connections = source->max_connections;
     t->reconnect_timeout = source->reconnect_timeout;
@@ -1959,7 +1959,7 @@ conn_target_job_t create_target (struct conn_target_info *source, int *was_creat
     if (!__sync_fetch_and_add (&t->global_refcnt, 1)) {
       MODULE_STAT->active_targets++;
       MODULE_STAT->inactive_targets--;
-    
+
       if (was_created) {
         *was_created = 2;
       }
@@ -1974,7 +1974,7 @@ conn_target_job_t create_target (struct conn_target_info *source, int *was_creat
     //assert (MODULE_STAT->allocated_targets < MAX_TARGETS);
     T = create_async_job (do_conn_target_job, JSC_ALLOW (JC_EPOLL, JS_RUN) | JSC_ALLOW (JC_EPOLL, JS_ABORT) | JSC_ALLOW (JC_EPOLL, JS_ALARM) | JSC_ALLOW (JC_EPOLL, JS_FINISH), -2, sizeof (struct conn_target_info), JT_HAVE_TIMER, JOB_REF_NULL);
     T->j_refcnt = 2;
-       
+
     struct conn_target_info *t = CONN_TARGET_INFO (T);
     memcpy (t, source, sizeof (*source));
     job_timer_init (T);
@@ -1995,7 +1995,7 @@ conn_target_job_t create_target (struct conn_target_info *source, int *was_creat
     t->global_refcnt = 1;
     schedule_job (JOB_REF_CREATE_PASS (T));
   }
-  
+
   pthread_mutex_unlock (&TargetsLock);
 
   return T;
@@ -2008,7 +2008,7 @@ conn_target_job_t create_target (struct conn_target_info *source, int *was_creat
 
 
 
-void tcp_set_max_connections (int maxconn) /* {{{ */ {  
+void tcp_set_max_connections (int maxconn) /* {{{ */ {
   max_connection_fd = maxconn;
   if (!max_special_connections || max_special_connections > maxconn) {
     max_special_connections = maxconn;
@@ -2043,7 +2043,7 @@ int create_all_outbound_connections_limited (int limit) /* {{{ */ {
   MODULE_STAT->ready_outbound_connections = new_ready_outbound_connections;
   return count;    */
 }
-/* }}} */ 
+/* }}} */
 
 int create_all_outbound_connections (void) /* {{{ */ {
   return create_all_outbound_connections_limited (0x7fffffff);
@@ -2121,7 +2121,7 @@ void free_later_act (void) {
 void free_connection_tree_ptr (struct tree_connection *T) /* {{{ */ {
   free_tree_ptr_connection (T);
 }
-/* }}} */ 
+/* }}} */
 
 
 void incr_active_dh_connections (void) {
@@ -2177,4 +2177,51 @@ unsigned nat_translate_ip (unsigned local_ip) {
     }
   }
   return local_ip;
+}
+
+int ipv4_address_is_private(unsigned int ipv4) {
+  int ipv4_part1 = ipv4 >> 24 & 255;
+  int ipv4_part2 = ipv4 >> 16 & 255;
+  int ipv4_part3 = ipv4 >> 8  & 255;
+  int ipv4_part4 = ipv4 & 255;
+
+  // RFC 1918
+  // check private address range
+  // 10.0.0.0 - 10.255.255.255
+  if (ipv4_part1 == 10) {
+    return 1;
+  }
+
+  // 172.16.0.0 - 172.31.255.255
+  if (ipv4_part1 == 172 && ipv4_part2 >= 16 && ipv4_part2 <= 31) {
+    return 2;
+  }
+
+  // 192.168.0.0 - 192.168.255.255
+  if (ipv4_part1 == 192 && ipv4_part2 == 168) {
+    return 3;
+  }
+
+  // Check if ip address is correct at least.
+  // 0.0.0.0 - Current network
+  if (ipv4_part1 == 0 && ipv4_part2 == 0 && ipv4_part3 == 0 && ipv4_part4) {
+    return -2;
+  }
+
+  // Basic range of ip addresses 1.0.0.1 - 254.254.254.254
+  if (
+    ipv4_part1 >= 1 && ipv4_part1 < 254
+    &&
+    ipv4_part2 >= 0 && ipv4_part2 <= 254
+    &&
+    ipv4_part3 >= 0 && ipv4_part3 <= 254
+    &&
+    ipv4_part4 >= 1 && ipv4_part4 <= 254
+  ) {
+    // The address is not in private range, but it is correct.
+    return 0;
+  }
+
+  // The address is incorrect. Error signification.
+  return -1;
 }

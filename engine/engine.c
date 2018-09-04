@@ -17,12 +17,12 @@
     Copyright 2013 Vkontakte Ltd
               2013 Vitaliy Valtman
               2013 Anton Maydell
-    
-    Copyright 2014 Telegram Messenger Inc             
-              2014 Vitaly Valtman     
+
+    Copyright 2014 Telegram Messenger Inc
+              2014 Vitaly Valtman
               2014 Anton Maydell
-    
-    Copyright 2015-2016 Telegram Messenger Inc             
+
+    Copyright 2015-2016 Telegram Messenger Inc
               2015-2016 Vitaliy Valtman
 */
 
@@ -194,7 +194,7 @@ static void raise_file_limit (int maxconn) /* {{{ */ {
 }
 /* }}} */
 
-/* {{{ engine_init */ 
+/* {{{ engine_init */
 
 void engine_init (const char *const pwd_filename, int do_not_open_port) {
   engine_t *E = engine_state;
@@ -222,12 +222,13 @@ void engine_init (const char *const pwd_filename, int do_not_open_port) {
     E->port = try_open_port_range (E->start_port, E->end_port, 100, get_port_mod (), 1);
     assert (E->port >= 0);
   }
-  
+
   unsigned int ipv4 = 0;
 
   if (E->settings_addr.s_addr) {
     ipv4 = ntohl (E->settings_addr.s_addr);
-    if ((ipv4 >> 24) != 10) {
+    // Check if ip address is correct
+    if (ipv4_address_is_private(ipv4) == -1) {
       kprintf ("Bad binded IP address " IP_PRINT_STR ", search in ifconfig\n", IP_TO_PRINT (ipv4));
       ipv4 = 0;
     }
@@ -237,7 +238,7 @@ void engine_init (const char *const pwd_filename, int do_not_open_port) {
   init_msg_buffers (0);
 
   init_async_jobs ();
-  
+
   int nc;
   nc = engine_get_required_io_threads ();
   if (nc <= 0) {
@@ -249,7 +250,7 @@ void engine_init (const char *const pwd_filename, int do_not_open_port) {
     nc = DEFAULT_CPU_JOB_THREADS;
   }
   create_new_job_class (JC_CPU, nc, nc);
-  
+
   if (engine_check_multithread_enabled ()) {
     int nc;
     nc = engine_get_required_tcp_cpu_threads ();
@@ -268,7 +269,7 @@ void engine_init (const char *const pwd_filename, int do_not_open_port) {
   create_main_thread_pipe ();
   alloc_timer_manager (JC_EPOLL);
   notification_event_job_create ();
-  
+
   kprintf ("Started as " PID_PRINT_STR "\n", PID_TO_PRINT (&PID));
 }
 /* }}} */
@@ -279,7 +280,7 @@ void server_init (conn_type_t *listen_connection_type, void *listen_connection_e
   assert (F && "server functions aren't defined");
 
   init_epoll ();
-  
+
   epoll_sethandler (pipe_read_end, 0, epoll_nop, NULL);
   epoll_insert (pipe_read_end, EVT_READ | EVT_LEVEL);
 
@@ -296,7 +297,7 @@ void server_init (conn_type_t *listen_connection_type, void *listen_connection_e
     if (E->sfd <= 0) {
       assert (try_open_port (E->port, 1) >= 0);
     }
-      
+
     if (engine_check_tcp_enabled ()) {
       if (!engine_check_ipv6_enabled ()) {
         assert (init_listening_connection (E->sfd, listen_connection_type, listen_connection_extra) >= 0);
@@ -304,7 +305,7 @@ void server_init (conn_type_t *listen_connection_type, void *listen_connection_e
         assert (init_listening_tcpv6_connection (E->sfd, listen_connection_type, listen_connection_extra, SM_IPV6) >= 0);
       }
     }
-    
+
   }
 
   ksignal (SIGINT,  sigint_handler);
@@ -321,7 +322,7 @@ void server_init (conn_type_t *listen_connection_type, void *listen_connection_e
 void server_exit (void) /* {{{ */ {
   engine_t *E = engine_state;
   server_functions_t *F = E->F;
-  
+
   F->close_net_sockets ();
 
   if (signal_check_pending (SIGTERM)) {
@@ -332,7 +333,7 @@ void server_exit (void) /* {{{ */ {
 }
 /* }}} */
 
-/* {{{ precise cron */ 
+/* {{{ precise cron */
 
 struct event_precise_cron precise_cron_events = {
   .next = &precise_cron_events,
@@ -355,17 +356,17 @@ static void do_precise_cron (void) {
   engine_t *E = engine_state;
   server_functions_t *F = E->F;
   engine_process_signals ();
-  
+
   static int last_cron_time;
   if (last_cron_time != now) {
     last_cron_time = now;
     F->cron ();
   }
-  
+
   if (F->precise_cron) {
     F->precise_cron ();
   }
-  
+
   if (precise_cron_events.next != &precise_cron_events) {
     struct event_precise_cron ev = precise_cron_events;
     ev.next->prev = &ev;
@@ -406,7 +407,7 @@ int precise_cron_job_run (job_t job, int op, struct job_thread *JT) /* {{{ */ {
   job_timer_insert (job, precise_now + 0.001 * (1 + drand48_j ()));
   return 0;
 }
-/* }}} */ 
+/* }}} */
 
 int terminate_job_run (job_t job, int op, struct job_thread *JT) {
   if (op == JS_RUN) {
@@ -475,7 +476,7 @@ void default_engine_server_start (void) /* {{{ */ {
       }
       break;
     }
-    
+
     run_pending_main_jobs ();
   }
   sleep (120);
@@ -553,11 +554,11 @@ static void check_server_functions (void) /* {{{ */ {
   if (!F->aio_timeout) { F->aio_timeout = 0.5; }
 
   if (!F->get_op) { F->get_op = default_get_op; }
-  
+
   int i;
   for (i = 1; i <= 64; i++) {
     if (F->allowed_signals & SIG2INT (i)) {
-      //fix log spamming hack for image-engine: 
+      //fix log spamming hack for image-engine:
       ksignal (i, i == SIGCHLD ? quiet_signal_handler : default_signal_handler);
     }
   }
@@ -575,14 +576,14 @@ void engine_startup (engine_t *E, server_functions_t *F) /* {{{ */ {
 
   assert (SIGRTMAX == OUR_SIGRTMAX);
   assert (SIGRTMAX - SIGRTMIN >= 20);
-  
+
   E->sfd = 0;
   E->epoll_wait_timeout = DEFAULT_EPOLL_WAIT_TIMEOUT;
   E->maxconn = MAX_CONNECTIONS;
 
   check_server_functions ();
 }
-/* }}} */ 
+/* }}} */
 
 int default_main (server_functions_t *F, int argc, char *argv[]) {
   set_signals_handlers ();
@@ -615,7 +616,7 @@ int default_main (server_functions_t *F, int argc, char *argv[]) {
   add_builtin_parse_options ();
 
   F->prepare_parse_options ();
-  
+
   parse_engine_options_long (argc, argv);
 
   F->parse_extra_args (argc - optind, argv + optind);
@@ -629,7 +630,7 @@ int default_main (server_functions_t *F, int argc, char *argv[]) {
   vkprintf (3, "Command line parsed\n");
 
   F->pre_start ();
-  
+
   start_time = time (NULL);
 
   if (F->run_script) {
@@ -648,7 +649,7 @@ int default_main (server_functions_t *F, int argc, char *argv[]) {
   return 0;
 }
 
-    
+
 static int f_parse_option_engine (int val) {
   switch (val) {
     case 227:
@@ -718,4 +719,3 @@ int default_parse_option_func (int a) {
     return -1;
   }
 }
-

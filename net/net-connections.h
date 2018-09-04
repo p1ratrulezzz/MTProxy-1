@@ -17,8 +17,8 @@
     Copyright 2009-2013 Vkontakte Ltd
               2008-2013 Nikolai Durov
               2008-2013 Andrey Lopatin
-    
-    Copyright 2014      Telegram Messenger Inc             
+
+    Copyright 2014      Telegram Messenger Inc
               2014      Nikolai Durov
               2014      Andrey Lopatin
 
@@ -116,10 +116,10 @@ enum {
 };
 
 
-typedef job_t connection_job_t; 
-typedef job_t socket_connection_job_t; 
-typedef job_t listening_connection_job_t; 
-typedef job_t conn_target_job_t; 
+typedef job_t connection_job_t;
+typedef job_t socket_connection_job_t;
+typedef job_t listening_connection_job_t;
+typedef job_t conn_target_job_t;
 typedef job_t query_job_t;
 
 
@@ -141,7 +141,7 @@ typedef struct conn_functions {
   int (*connected)(connection_job_t c);	 /* invoked from run() when outbound connection is established */
   int (*check_ready)(connection_job_t c);	 /* updates conn->ready if necessary and returns it */
   int (*wakeup_aio)(connection_job_t c, int r);/* invoked from net_aio.c::check_aio_completion when aio read operation is complete */
-  int (*write_packet)(connection_job_t c, struct raw_message *raw);		 /* adds necessary headers to packet */ 
+  int (*write_packet)(connection_job_t c, struct raw_message *raw);		 /* adds necessary headers to packet */
   int (*flush)(connection_job_t c);		 /* generates necessary padding and writes as much bytes as possible */
 
   // CPU-NET METHODS
@@ -163,7 +163,7 @@ typedef struct conn_functions {
   int (*data_received)(connection_job_t c, int r);	/* invoked after r>0 bytes are read from socket */
   int (*data_sent)(connection_job_t c, int w);	/* invoked after w>0 bytes are written into socket */
   int (*ready_to_write)(connection_job_t c);   /* invoked from server_writer when Out.total_bytes crosses write_low_watermark ("greater or equal" -> "less") */
-  
+
   // INLINE METHODS
   int (*crypto_init)(connection_job_t c, void *key_data, int key_data_len);  /* < 0 = error */
   int (*crypto_free)(connection_job_t c);
@@ -324,7 +324,7 @@ int create_new_connections (conn_target_job_t S);
 
 int set_connection_timeout (connection_job_t C, double timeout);
 int clear_connection_timeout (connection_job_t C);
-  
+
 int prepare_stats (char *buf, int size);
 void fail_connection (connection_job_t C, int who);
 void fail_socket_connection (socket_connection_job_t C, int who);
@@ -377,7 +377,7 @@ void assert_net_net_thread (void);
 void assert_engine_thread (void);
 
 connection_job_t conn_target_get_connection (conn_target_job_t CT, int allow_stopped);
-      
+
 void insert_connection_into_target (conn_target_job_t SS, connection_job_t C);
 struct tree_connection *get_connection_tree (conn_target_job_t SS);
 //void wakeup_main_thread (void);
@@ -417,6 +417,24 @@ int get_cur_conn_generation (void);
 
 void tcp_set_max_accept_rate (int rate);
 void tcp_set_max_connections (int maxconn);
+
+/**
+ * Checks if the given address is in private range according to RFC 1918.
+ * @param ipv4 an integer ipv4 address (like ntohl() returns)
+ * @return a positive value 1-3 defining which subnet is it or a zero
+ *  The return values are:
+ *   -2 - 0.0.0.0 - Current network
+ *   -1 - An incorrect ipv4 address (out of range)
+ *    0 - Any correct ipv4 address
+ *    1 - 10.0.0.0 - 10.255.255.255
+ *    2 - 172.16.0.0 - 172.31.255.255
+ *    3 - 192.168.0.0 - 192.168.255.255
+ *  if the address is not in private range but is correct in General
+ *  and in the range 1.0.0.1 - 254.254.254.254.
+ *  In case if ip address is 0.0.0.0 - return value will be -2.
+ *  If the address is not correct ip address, it will be -1.
+ */
+int ipv4_address_is_private(unsigned int ipv4);
 
 extern int max_special_connections, active_special_connections;
 

@@ -1,0 +1,2 @@
+-P <proxy tag> -u nobody -p 8888 -H 6968 -S <secret> --aes-pwd proxy-secret proxy-multi.conf -M 0 --address <public_ip_here> --cpu-threads 4 --max-accept-rate 10 -C 60000 --ipv6 --allow-skip-dh
+
