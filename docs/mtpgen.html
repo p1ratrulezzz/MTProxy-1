@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<!-- saved from url=(0029)http://seriyps.ru/mtpgen.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		
+		<title>MTProto Proxy link generator</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+        input:invalid {
+          border: 2px solid red;
+        }
+        </style>
+        <script>
+         function $$(query, context) {
+             return Array.prototype.slice.call(
+                 (context || document).querySelectorAll(query)
+             );
+         }
+         // Convert a hex string to a byte array
+         function hexToBytes(hex) {
+             for (var bytes = [], c = 0; c < hex.length; c += 2)
+                 bytes.push(parseInt(hex.substr(c, 2), 16));
+             return bytes;
+         }
+
+         // Convert a byte array to a hex string
+         function bytesToHex(bytes) {
+             for (var hex = [], i = 0; i < bytes.length; i++) {
+                 var current = bytes[i] < 0 ? bytes[i] + 256 : bytes[i];
+                 hex.push((current >>> 4).toString(16));
+                 hex.push((current & 0xF).toString(16));
+             }
+             return hex.join("");
+         }
+
+         // Convert a byte array to urlsafe base64 string
+         function bytesToBase64(data) {
+             var str = String.fromCharCode.apply(null,data);
+             return btoa(str).replace(/.{76}(?=.)/g,'$&\n').replace("+", "-").replace("/", "_");
+         }
+         // Random integer
+         function getRandomInt(max) {
+             return Math.floor(Math.random() * Math.floor(max));
+         }
+         function setUrl(id, url) {
+             var el = $$(id)[0];
+             el.href = url;
+             el.innerText = url;
+         }
+         document.addEventListener("DOMContentLoaded",  function() {
+             var form = $$("#the-form")[0];
+             form.onsubmit = function() {
+                 var server = form.server.value;
+                 var port = form.port.value;
+                 var secret = form.secret.value;
+                 var tls_domain = form.domain.value;
+                 var url_type = $$('input[name="url_type"]:checked', form)[0].value;
+
+                 var secret_bytes = hexToBytes(secret);
+                 var dd_secret = "dd" + secret
+                 var domain_bytes = Array.from(tls_domain).map( (c) => c.charCodeAt(0) );
+                 var tls_bytes = hexToBytes("ee" + secret).concat(domain_bytes);
+                 var tg_prefix = url_type + "proxy?server=" + server + "&port=" + port + "&secret=";
+                 
+                 setUrl("#url-normal", tg_prefix + secret);
+                 setUrl("#url-dd", tg_prefix + dd_secret);
+                 setUrl("#url-tls-hex", tg_prefix + encodeURIComponent(bytesToHex(tls_bytes)));
+                 setUrl("#url-tls-b64", tg_prefix + encodeURIComponent(bytesToBase64(tls_bytes)));
+                 return false;
+             }
+             $$("#rand-secret")[0].onclick = function() {
+                 var rand_hex = [];
+                 for (var i = 0; i < 16; i++) {
+                     rand_hex.push(getRandomInt(256));
+                 }
+                 $$("#secret")[0].value = bytesToHex(rand_hex);
+             }
+         })
+        </script>
+	</head>
+	<body>
+        <h1>MTProto Proxy link generator</h1>
+        <form id="the-form">
+            <div>
+                <nobr>
+                    <label for="server">Server:</label>
+                    <input id="server" name="server" placeholder="1.2.3.4" minlength="3" required="">
+                </nobr>
+                <nobr>
+                    <label for="port">Port:</label>
+                    <input id="port" name="port" type="number" placeholder="443" min="0" max="65536" required="">
+                </nobr>
+                <nobr>
+                    <label for="secret">Secret:</label>
+                    <input type="button" id="rand-secret" value="rand" style="padding: 0">
+                    <input id="secret" name="secret" placeholder="d0d6e111bada5511fcce9584deadbeef" size="28" minlength="32" maxlength="32" pattern="[0-9a-fA-F]+" required="">
+                </nobr>
+                <nobr>
+                    <label for="domain">Fake-TLS domain:</label>
+                    <input id="domain" name="domain" placeholder="google.com" minlength="3">
+                </nobr>
+                <nobr>
+                    <label for="tg">tg://</label>
+                    <input type="radio" id="tg" name="url_type" value="tg://" checked="">
+                    <label for="tme">https://t.me</label>
+                    <input type="radio" id="tme" name="url_type" value="https://t.me/">
+                </nobr>
+            </div>
+            <button id="generate" type="submit">Generate</button>
+        </form>
+        <h2>Links:</h2>
+        <div id="links">
+            <ul>
+                <li>
+                    Normal: <a id="url-normal" href="http://seriyps.ru/mtpgen.html#"></a>
+                </li>
+                <li>
+                    Secure: <a id="url-dd" href="http://seriyps.ru/mtpgen.html#"></a>
+                </li>
+                <li>
+                    Fake-TLS hex: <a id="url-tls-hex" href="http://seriyps.ru/mtpgen.html#"></a>
+                </li>
+                <li>
+                    Fake-TLS base64: <a id="url-tls-b64" href="http://seriyps.ru/mtpgen.html#"></a>
+                </li>
+            </ul>
+        </div>
+    
+
+
+</body></html>

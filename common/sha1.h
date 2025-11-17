@@ -25,6 +25,11 @@
 #define EVP_MD_CTX_free EVP_MD_CTX_destroy
 #endif
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000
+#define EVP_MD_CTX_new EVP_MD_CTX_create
+#define EVP_MD_CTX_free EVP_MD_CTX_destroy
+#endif
+
 typedef EVP_MD_CTX sha1_context;
 
 void sha1_starts (sha1_context *ctx);
