@@ -68,7 +68,7 @@
 #define COMMIT "unknown"
 #endif
 
-#define VERSION_STR	"mtproxy-0.01"
+#define VERSION_STR	"mtproxy-0.02"
 const char FullVersionStr[] = VERSION_STR " compiled at " __DATE__ " " __TIME__ " by gcc " __VERSION__ " "
 #ifdef __LP64__
   "64-bit"
@@ -409,7 +409,6 @@ int worker_id, workers, slave_mode, parent_pid;
 int pids[MAX_WORKERS];
 
 long long get_queries;
-long long http_queries;
 int pending_http_queries;
 
 long long active_rpcs, active_rpcs_created;

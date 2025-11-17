@@ -86,6 +86,13 @@ And there should be a process and Active daemon running. Check again if you can 
 ```bash
   systemctl enable mtproto-proxy
 ```
+... where:
+- `nobody` is the username. `mtproto-proxy` calls `setuid()` to drop privileges.
+- `443` is the port, used by clients to connect to the proxy.
+- `8888` is the local port. You can use it to get statistics from `mtproto-proxy`. Like `wget localhost:8888/stats`. You can only get this stat via loopback.
+- `<secret>` is the secret generated at step 3. Also you can set multiple secrets: `-S <secret1> -S <secret2>`.
+- `proxy-secret` and `proxy-multi.conf` are obtained at steps 1 and 2.
+- `1` is the number of workers. You can increase the number of workers, if you have a powerful server.
 
 That's it. Now you can close the SSH connection to your VPS and keep using Telegram with your new server! The statistics of usage of the server are accessible via Telegram bot @MTProxybot
 
